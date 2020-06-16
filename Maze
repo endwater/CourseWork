@@ -1,0 +1,179 @@
+/*
+ * author: Yangchen Zhong
+ * date: Spring 2020
+ * Assignment: HWK5
+ * File: Maze.java
+ */
+import java.awt.Graphics;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+import javax.swing.JPanel;
+
+public class Maze extends JPanel{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private class Node {
+		public char myVal;
+		public Node left, right, up, down;
+		public Node[] nearby;
+		public boolean isVisited;
+		public Node() {
+			myVal = 'X';
+			isVisited = false;
+			left = right = up = down = null;
+			nearby = new Node[4];
+		}
+		
+	}
+	private int myRows;
+	private int myCols;
+	private Node[][] myMaze;
+	private boolean myDebug;
+	private static final int MY_START_X = 1;
+	private static final int MY_START_Y = 1;
+	private final int myEndX;
+	private final int myEndY;
+	public Maze(final int theRows, final int theCols, final boolean theDebug) {
+		if(theRows <= 0 || theCols <= 0) {
+			myEndX = 1;
+			myEndY = 1;
+			System.out.println("Wrong rows or columns");
+		} else {
+			myRows = theRows;
+			myCols = theCols;
+			myEndX = theCols * 2 - 1;
+			myEndY = theRows * 2 - 1;
+			myDebug = theDebug;
+			myMaze = new Node[theRows * 2 + 1][theCols * 2 + 1];
+			constructorMaze();
+			generateMaze(myMaze[MY_START_Y][MY_START_X]);
+			correctPath(myMaze[MY_START_Y][MY_START_X]);
+			display();
+			repaint();
+		}
+	}
+	
+	public void paint(Graphics theGraph) {
+		for(int i = 0; i <= myRows * 2; i++) {
+			for(int j = 0; j <= myCols * 2; j++) {
+				if(myMaze[i][j].myVal == 'X') {
+					theGraph.fillRect(100 + j * 10, 100 + i * 10, 10, 10);
+				} 
+			}
+		}
+		
+	}
+	private char correctPath(Node theNode) {
+		if(theNode.down.myVal == ' ' && theNode.down.down == null) {
+			theNode.myVal = '+';
+			return theNode.myVal;
+		}	
+		if(theNode.left.left != null && !theNode.left.isVisited
+				&&theNode.left.myVal == ' ' && theNode.myVal != '+') {
+			theNode.left.isVisited = true;
+			theNode.myVal = correctPath(theNode.left.left);
+		} 
+		if (theNode.right.right != null && !theNode.right.isVisited
+				&&theNode.right.myVal == ' '&& theNode.myVal != '+') {
+			theNode.right.isVisited = true;
+			theNode.myVal = correctPath(theNode.right.right);
+		}
+		if (theNode.up.up != null && !theNode.up.isVisited
+				&&theNode.up.myVal == ' '&& theNode.myVal != '+') {
+			theNode.up.isVisited = true;
+			theNode.myVal = correctPath(theNode.up.up);
+		} 
+		if (theNode.down.down != null && !theNode.down.isVisited
+				&&theNode.down.myVal == ' '&& theNode.myVal != '+') {
+			theNode.down.isVisited = true;
+			theNode.myVal = correctPath(theNode.down.down);
+		};
+		return theNode.myVal;
+	}
+	
+	private void constructorMaze() {
+		for(int i = 0; i <= myRows * 2; i++) {
+			for(int j = 0; j <= myCols * 2; j++) {
+				myMaze[i][j] = new Node();
+			}
+		}
+		myMaze[MY_START_Y - 1][MY_START_X].myVal = ' '; //start point
+		for(int i = 1; i < myRows * 2; i++) {
+			for(int j = 1; j < myCols * 2; j++) {
+				myMaze[i][j].left = myMaze[i][j - 1];
+				myMaze[i][j].right = myMaze[i][j + 1];
+				myMaze[i][j].up = myMaze[i - 1][j];
+				myMaze[i][j].down = myMaze[i + 1][j];
+				buildNearBy(myMaze[i][j]);
+			}
+		}
+		myMaze[myEndY + 1][myEndX].myVal = ' '; //end point
+		
+	}
+
+	private void buildNearBy(Node theNode) {
+		List<Node> temp = new ArrayList<Node>();
+		temp.add(theNode.left); temp.add(theNode.right);
+		temp.add(theNode.up); temp.add(theNode.down);
+		Random rand = new Random();
+		int randomNumber;
+		for(int i = 0; i < 4; i++) {
+			randomNumber = rand.nextInt(4 - i);
+			theNode.nearby[i] = temp.get(randomNumber);
+			temp.remove(randomNumber);
+		}
+	}
+	
+	public void generateMaze(Node theNode) {
+		if (theNode == null) {
+			return;
+		}
+		theNode.myVal = ' ';
+		theNode.isVisited = true;
+		if(myDebug) {
+			display();
+		}
+		for(int i = 0; i < 4; i++) {
+			if(theNode.nearby[i] == theNode.left) {
+				if (theNode.left.left != null && !theNode.left.left.isVisited) {
+					theNode.left.myVal = ' '; // break the wall between two nodes
+					generateMaze(theNode.left.left); // recursive call
+				}
+			} else if(theNode.nearby[i] == theNode.right) {
+				if (theNode.right.right != null && !theNode.right.right.isVisited) {
+					theNode.right.myVal = ' ';
+					generateMaze(theNode.right.right);
+				}
+			} else if(theNode.nearby[i] == theNode.up) {
+				if (theNode.up.up != null && !theNode.up.up.isVisited) {
+					theNode.up.myVal = ' ';
+					generateMaze(theNode.up.up);
+				}
+			} else {
+				if (theNode.down.down != null && !theNode.down.down.isVisited) {
+					theNode.down.myVal = ' ';
+					generateMaze(theNode.down.down);
+				}
+			}
+		}	
+	}
+	
+	public boolean checkBound(int theX, int theY) {
+		return theX <= 0 || theY <= 0 || theX >= myRows * 2 || theY >= myCols * 2;
+	}
+	public void display() {
+		for(int i = 0; i <= myRows * 2; i++) {
+			for(int j = 0; j <= myCols * 2; j++) {
+				System.out.print(myMaze[i][j].myVal + " ");
+			}
+			System.out.println();
+		}
+		System.out.println();
+	}
+	
+	
+}
